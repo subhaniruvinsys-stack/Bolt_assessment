@@ -40,6 +40,16 @@ export interface ShippingAddress {
   country: string;
 }
 
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  imageEmoji: string;
+  stock: number;
+}
+
 export interface CheckoutResponse {
   orderId: string;
   status: string;
@@ -103,6 +113,7 @@ export const api = {
       email: string;
       phone: string;
       shippingAddress: ShippingAddress;
+      items?: { productId: string; name: string; price: number; quantity: number }[];
       razorpayPaymentId?: string;
       totalAmount?: number;
     },
@@ -115,4 +126,15 @@ export const api = {
       },
       body: JSON.stringify(payload),
     }),
+
+  getProducts: () => request<{ products: Product[] }>('/products', { method: 'GET' }),
+
+  createProduct: (payload: { name: string; description: string; price: number; category: string; imageEmoji: string; stock: number }) =>
+    request<Product>('/admin/products', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteProduct: (id: string) =>
+    request<{ message: string }>(`/admin/products/${id}`, { method: 'DELETE' }),
 };

@@ -64,6 +64,9 @@ func main() {
 		r.Post("/resend-code", h.ResendCode)
 		r.Get("/me", h.Me)
 		r.Post("/logout", h.Logout)
+		r.Get("/products", h.GetProducts)
+		r.Post("/admin/products", h.CreateProduct)
+		r.Delete("/admin/products/{id}", h.DeleteProduct)
 		r.Post("/checkout", h.Checkout)
 	})
 

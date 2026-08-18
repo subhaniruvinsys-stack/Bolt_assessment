@@ -22,6 +22,9 @@ type Store interface {
 	MarkCodeUsed(ctx context.Context, userID uuid.UUID) error
 	CreateOrder(ctx context.Context, order *models.Order) (*models.Order, bool, error)
 	GetOrderByKey(ctx context.Context, key string) (*models.Order, error)
+	GetProducts(ctx context.Context) ([]models.Product, error)
+	CreateProduct(ctx context.Context, p *models.Product) (*models.Product, error)
+	DeleteProduct(ctx context.Context, id uuid.UUID) error
 }
 
 // PostgresStore implements Store via pgx pool
@@ -107,18 +110,72 @@ func (p *PostgresStore) GetOrderByKey(ctx context.Context, key string) (*models.
 	return &order, nil
 }
 
+func (p *PostgresStore) GetProducts(ctx context.Context) ([]models.Product, error) {
+	query := `SELECT id, name, description, price, category, image_emoji, stock, created_at FROM products ORDER BY created_at DESC`
+	rows, err := p.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var products []models.Product
+	for rows.Next() {
+		var pr models.Product
+		if err := rows.Scan(&pr.ID, &pr.Name, &pr.Description, &pr.Price, &pr.Category, &pr.ImageEmoji, &pr.Stock, &pr.CreatedAt); err == nil {
+			products = append(products, pr)
+		}
+	}
+	return products, nil
+}
+
+func (p *PostgresStore) CreateProduct(ctx context.Context, pr *models.Product) (*models.Product, error) {
+	query := `INSERT INTO products (name, description, price, category, image_emoji, stock)
+	          VALUES ($1, $2, $3, $4, $5, $6)
+	          RETURNING id, created_at`
+	err := p.pool.QueryRow(ctx, query, pr.Name, pr.Description, pr.Price, pr.Category, pr.ImageEmoji, pr.Stock).
+		Scan(&pr.ID, &pr.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return pr, nil
+}
+
+func (p *PostgresStore) DeleteProduct(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM products WHERE id = $1`
+	_, err := p.pool.Exec(ctx, query, id)
+	return err
+}
+
 // MemoryStore provides in-memory storage fallback
 type MemoryStore struct {
-	mu     sync.RWMutex
-	users  map[string]*models.User
-	orders map[string]*models.Order // key: idempotency_key or ID
+	mu       sync.RWMutex
+	users    map[string]*models.User
+	orders   map[string]*models.Order
+	products map[string]*models.Product
 }
 
 func NewMemoryStore() *MemoryStore {
-	return &MemoryStore{
-		users:  make(map[string]*models.User),
-		orders: make(map[string]*models.Order),
+	ms := &MemoryStore{
+		users:    make(map[string]*models.User),
+		orders:   make(map[string]*models.Order),
+		products: make(map[string]*models.Product),
 	}
+
+	// Seed initial products
+	seeds := []models.Product{
+		{ID: uuid.New(), Name: "Classic Cotton Tee", Description: "Size: M | Color: Navy", Price: 2999.00, Category: "Apparel", ImageEmoji: "👕", Stock: 50, CreatedAt: time.Now()},
+		{ID: uuid.New(), Name: "Minimalist Cap", Description: "Color: Charcoal", Price: 1499.00, Category: "Accessories", ImageEmoji: "🧢", Stock: 75, CreatedAt: time.Now()},
+		{ID: uuid.New(), Name: "Leather Zip Wallet", Description: "Genuine Grain Leather", Price: 1999.00, Category: "Accessories", ImageEmoji: "👛", Stock: 30, CreatedAt: time.Now()},
+		{ID: uuid.New(), Name: "Wireless Studio Earbuds", Description: "Noise Cancellation", Price: 4999.00, Category: "Electronics", ImageEmoji: "🎧", Stock: 20, CreatedAt: time.Now()},
+		{ID: uuid.New(), Name: "Urban Denim Jacket", Description: "Vintage Wash Cotton", Price: 5999.00, Category: "Apparel", ImageEmoji: "🧥", Stock: 15, CreatedAt: time.Now()},
+	}
+
+	for _, p := range seeds {
+		pr := p
+		ms.products[pr.ID.String()] = &pr
+	}
+
+	return ms
 }
 
 func (m *MemoryStore) CreateUser(ctx context.Context, email, firstName, lastName, code string, expiresAt time.Time) (*models.User, error) {
@@ -215,6 +272,35 @@ func (m *MemoryStore) GetOrderByKey(ctx context.Context, key string) (*models.Or
 		return nil, nil
 	}
 	return order, nil
+}
+
+func (m *MemoryStore) GetProducts(ctx context.Context) ([]models.Product, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var list []models.Product
+	for _, p := range m.products {
+		list = append(list, *p)
+	}
+	return list, nil
+}
+
+func (m *MemoryStore) CreateProduct(ctx context.Context, p *models.Product) (*models.Product, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	p.ID = uuid.New()
+	p.CreatedAt = time.Now()
+	m.products[p.ID.String()] = p
+	return p, nil
+}
+
+func (m *MemoryStore) DeleteProduct(ctx context.Context, id uuid.UUID) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	delete(m.products, id.String())
+	return nil
 }
 
 // Generate6DigitCode uses crypto/rand for secure 6-digit numeric OTP code

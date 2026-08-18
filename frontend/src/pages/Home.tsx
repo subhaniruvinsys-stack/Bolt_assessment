@@ -1,7 +1,7 @@
 import { Zap, ShieldCheck, Fingerprint, RefreshCcw, ArrowRight, Sparkles, IndianRupee } from 'lucide-react';
 
 interface HomeProps {
-  onNavigate: (page: 'register' | 'checkout') => void;
+  onNavigate: (page: 'register' | 'checkout' | 'admin') => void;
 }
 
 export const HomePage: React.FC<HomeProps> = ({ onNavigate }) => {
@@ -23,6 +23,12 @@ export const HomePage: React.FC<HomeProps> = ({ onNavigate }) => {
           <span className="text-lg font-bold text-text-primary tracking-tight">Bolt Checkout</span>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => onNavigate('admin')}
+            className="hidden sm:block text-xs font-semibold text-purple-400 hover:text-purple-300 px-3 py-1.5 rounded-lg border border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10 transition-colors"
+          >
+            Superadmin Portal 🛡️
+          </button>
           <button
             onClick={() => onNavigate('register')}
             className="hidden sm:block text-sm font-medium text-text-secondary hover:text-text-primary transition-colors px-4 py-2 rounded-lg hover:bg-surface-hover"

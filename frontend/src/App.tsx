@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { HomePage } from './pages/Home';
 import { RegisterPage } from './pages/Register';
 import { CheckoutPage } from './pages/Checkout';
+import { AdminPage } from './pages/Admin';
 import { Toaster } from 'sonner';
 
-type Page = 'home' | 'register' | 'checkout';
+type Page = 'home' | 'register' | 'checkout' | 'admin';
 
 export function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -30,10 +31,16 @@ export function App() {
           onNavigateToCheckout={() => setCurrentPage('checkout')}
           onNavigateHome={() => setCurrentPage('home')}
         />
+      ) : currentPage === 'admin' ? (
+        <AdminPage
+          onNavigateHome={() => setCurrentPage('home')}
+          onNavigateCheckout={() => setCurrentPage('checkout')}
+        />
       ) : (
         <CheckoutPage
           onNavigateToRegister={() => setCurrentPage('register')}
           onNavigateHome={() => setCurrentPage('home')}
+          onNavigateAdmin={() => setCurrentPage('admin')}
         />
       )}
     </div>

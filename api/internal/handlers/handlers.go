@@ -10,6 +10,9 @@ import (
 	"bolt-otp-api/internal/db"
 	"bolt-otp-api/internal/middleware"
 	"bolt-otp-api/internal/models"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -345,4 +348,71 @@ func (h *Handler) Checkout(w http.ResponseWriter, r *http.Request) {
 		Message:   "Order placed successfully!",
 		Duplicate: false,
 	})
+}
+
+// GET /api/products
+func (h *Handler) GetProducts(w http.ResponseWriter, r *http.Request) {
+	products, err := h.store.GetProducts(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "fetch_failed", "Failed to fetch products")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"products": products})
+}
+
+// POST /api/admin/products
+func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
+	var req models.CreateProductRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_payload", "Invalid product payload")
+		return
+	}
+
+	if req.Name == "" || req.Price <= 0 {
+		writeError(w, http.StatusUnprocessableEntity, "validation_error", "Name and valid Price are required")
+		return
+	}
+
+	p := &models.Product{
+		Name:        req.Name,
+		Description: req.Description,
+		Price:       req.Price,
+		Category:    req.Category,
+		ImageEmoji:  req.ImageEmoji,
+		Stock:       req.Stock,
+	}
+	if p.Category == "" {
+		p.Category = "General"
+	}
+	if p.ImageEmoji == "" {
+		p.ImageEmoji = "📦"
+	}
+	if p.Stock <= 0 {
+		p.Stock = 100
+	}
+
+	created, err := h.store.CreateProduct(r.Context(), p)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "create_failed", "Failed to create product")
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, created)
+}
+
+// DELETE /api/admin/products/{id}
+func (h *Handler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_id", "Invalid product ID")
+		return
+	}
+
+	if err := h.store.DeleteProduct(r.Context(), id); err != nil {
+		writeError(w, http.StatusInternalServerError, "delete_failed", "Failed to delete product")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"message": "Product deleted successfully"})
 }

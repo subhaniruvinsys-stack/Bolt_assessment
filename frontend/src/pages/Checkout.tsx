@@ -1,13 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { api, type ShippingAddress } from '../lib/api';
-import { OrderSummaryPanel } from '../components/OrderSummaryPanel';
+import { api, type ShippingAddress, type Product } from '../lib/api';
+import { OrderSummaryPanel, type CartItem } from '../components/OrderSummaryPanel';
 import { OtpModal } from '../components/OtpModal';
 import { toast } from 'sonner';
-import { CheckCircle2, Sparkles, UserCheck, Zap, ArrowLeft, IndianRupee, CreditCard } from 'lucide-react';
+import { CheckCircle2, Sparkles, UserCheck, Zap, ArrowLeft, IndianRupee, CreditCard, ShieldCheck, Plus } from 'lucide-react';
 
 const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder';
-const TOTAL_AMOUNT_PAISE = 530700; // ₹5,307 in paise
-const TOTAL_DISPLAY = '₹5,307';
 
 function loadRazorpayScript(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -26,9 +24,10 @@ function loadRazorpayScript(): Promise<boolean> {
 interface CheckoutProps {
   onNavigateToRegister: () => void;
   onNavigateHome: () => void;
+  onNavigateAdmin?: () => void;
 }
 
-export const CheckoutPage: React.FC<CheckoutProps> = ({ onNavigateToRegister, onNavigateHome }) => {
+export const CheckoutPage: React.FC<CheckoutProps> = ({ onNavigateToRegister, onNavigateHome, onNavigateAdmin }) => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState<ShippingAddress>({
@@ -47,7 +46,61 @@ export const CheckoutPage: React.FC<CheckoutProps> = ({ onNavigateToRegister, on
   const [orderCompleted, setOrderCompleted] = useState<string | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
 
+  // Dynamic Store Catalog & Cart State
+  const [products, setProducts] = useState<Product[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
+
   const idempotencyKeyRef = useRef<string>(`key_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
+
+  // Fetch catalog products from DB on mount
+  useEffect(() => {
+    api.getProducts()
+      .then((res) => {
+        const list = res.products || [];
+        setProducts(list);
+        if (list.length >= 2) {
+          setCart([
+            { product: list[0], quantity: 1 },
+            { product: list[1], quantity: 1 },
+          ]);
+        } else if (list.length > 0) {
+          setCart([{ product: list[0], quantity: 1 }]);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleUpdateQuantity = (productId: string, delta: number) => {
+    setCart((prev) => {
+      return prev
+        .map((item) => {
+          if (item.product.id === productId) {
+            const newQty = item.quantity + delta;
+            return newQty > 0 ? { ...item, quantity: newQty } : null;
+          }
+          return item;
+        })
+        .filter(Boolean) as CartItem[];
+    });
+  };
+
+  const handleAddToCart = (product: Product) => {
+    setCart((prev) => {
+      const existing = prev.find((item) => item.product.id === product.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+    toast.success('Added to Cart', { description: product.name });
+  };
+
+  const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const gst = Math.round(subtotal * 0.18);
+  const totalAmount = subtotal + gst;
+  const totalPaise = totalAmount * 100;
 
   // Check current session on mount
   useEffect(() => {
@@ -116,10 +169,10 @@ export const CheckoutPage: React.FC<CheckoutProps> = ({ onNavigateToRegister, on
 
     const options = {
       key: RAZORPAY_KEY,
-      amount: TOTAL_AMOUNT_PAISE,
+      amount: totalPaise > 0 ? totalPaise : 530700,
       currency: 'INR',
       name: 'Bolt Checkout',
-      description: 'Demo Order — Classic Cotton Tee + Minimalist Cap',
+      description: `Bolt Order — ${cart.length} item(s) from catalog`,
       image: '',
       handler: async (response: { razorpay_payment_id: string }) => {
         setPaymentId(response.razorpay_payment_id);
@@ -129,8 +182,14 @@ export const CheckoutPage: React.FC<CheckoutProps> = ({ onNavigateToRegister, on
               email,
               phone,
               shippingAddress: address,
+              items: cart.map((i) => ({
+                productId: i.product.id,
+                name: i.product.name,
+                price: i.product.price,
+                quantity: i.quantity,
+              })),
               razorpayPaymentId: response.razorpay_payment_id,
-              totalAmount: 5307,
+              totalAmount: totalAmount,
             },
             idempotencyKeyRef.current
           );
@@ -187,7 +246,7 @@ export const CheckoutPage: React.FC<CheckoutProps> = ({ onNavigateToRegister, on
             {paymentId && (
               <div className="text-text-secondary">Razorpay ID: <span className="font-bold text-text-primary">{paymentId}</span></div>
             )}
-            <div className="text-text-secondary">Amount: <span className="font-bold text-success">{TOTAL_DISPLAY}</span></div>
+            <div className="text-text-secondary">Amount: <span className="font-bold text-success">₹{totalAmount.toLocaleString()}</span></div>
           </div>
 
           <button
@@ -329,14 +388,58 @@ export const CheckoutPage: React.FC<CheckoutProps> = ({ onNavigateToRegister, on
                 </div>
               </div>
 
+              {/* Step 3: Dynamic Store Catalog */}
+              <div className="glass-card rounded-2xl p-5 sm:p-6 space-y-4">
+                <div className="border-b border-border pb-3 flex items-center justify-between">
+                  <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-purple-500/10 text-purple-400 text-xs flex items-center justify-center font-bold">3</span>
+                    Store Collection (Dynamic Supabase Catalog)
+                  </h2>
+                  {onNavigateAdmin && (
+                    <button
+                      type="button"
+                      onClick={onNavigateAdmin}
+                      className="text-[11px] font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" /> Superadmin Portal
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {products.map((item) => {
+                    const inCart = cart.find((i) => i.product.id === item.id);
+                    return (
+                      <div key={item.id} className="p-3 bg-surface hover:bg-surface-hover rounded-xl border border-border flex items-center justify-between transition-colors">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-2xl">{item.imageEmoji || '📦'}</span>
+                          <div>
+                            <p className="font-bold text-xs text-text-primary">{item.name}</p>
+                            <p className="text-[10px] text-text-muted">₹{item.price.toLocaleString()}</p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleAddToCart(item)}
+                          className="px-2.5 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 text-xs font-bold transition-colors flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" /> Add {inCart ? `(${inCart.quantity})` : ''}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Pay Button */}
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || cart.length === 0}
                 className="w-full py-4 px-6 btn-gradient text-white font-bold text-base rounded-2xl flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CreditCard className="w-5 h-5" />
-                {submitting ? 'Processing...' : `Pay ${TOTAL_DISPLAY} with Razorpay`}
+                {submitting ? 'Processing Order...' : `Pay ₹${totalAmount.toLocaleString()} with Razorpay`}
               </button>
 
               <p className="text-center text-xs text-text-muted flex items-center justify-center gap-1.5">
@@ -347,7 +450,13 @@ export const CheckoutPage: React.FC<CheckoutProps> = ({ onNavigateToRegister, on
 
           {/* Order Summary */}
           <div className="lg:col-span-5">
-            <OrderSummaryPanel user={user} recognizeLoading={recognizeLoading} onLogout={handleLogout} />
+            <OrderSummaryPanel
+              user={user}
+              recognizeLoading={recognizeLoading}
+              cart={cart}
+              onUpdateQuantity={handleUpdateQuantity}
+              onLogout={handleLogout}
+            />
           </div>
         </div>
       </div>

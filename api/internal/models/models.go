@@ -17,12 +17,31 @@ type User struct {
 	CreatedAt     time.Time  `json:"createdAt"`
 }
 
+type Product struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Price       float64   `json:"price"`
+	Category    string    `json:"category"`
+	ImageEmoji  string    `json:"imageEmoji"`
+	Stock       int       `json:"stock"`
+	CreatedAt   time.Time `json:"createdAt"`
+}
+
+type OrderItem struct {
+	ProductID string  `json:"productId"`
+	Name      string  `json:"name"`
+	Price     float64 `json:"price"`
+	Quantity  int     `json:"quantity"`
+}
+
 type Order struct {
 	ID                uuid.UUID       `json:"id"`
 	UserID            *uuid.UUID      `json:"userId,omitempty"`
 	Email             string          `json:"email"`
 	Phone             string          `json:"phone"`
 	ShippingAddress   ShippingAddress `json:"shippingAddress"`
+	Items             []OrderItem     `json:"items,omitempty"`
 	IdempotencyKey    *string         `json:"idempotencyKey,omitempty"`
 	TotalAmount       float64         `json:"totalAmount"`
 	Currency          string          `json:"currency"`
@@ -90,8 +109,18 @@ type CheckoutRequest struct {
 	Email             string          `json:"email"`
 	Phone             string          `json:"phone"`
 	ShippingAddress   ShippingAddress `json:"shippingAddress"`
+	Items             []OrderItem     `json:"items,omitempty"`
 	RazorpayPaymentID string          `json:"razorpayPaymentId,omitempty"`
 	TotalAmount       float64         `json:"totalAmount,omitempty"`
+}
+
+type CreateProductRequest struct {
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Price       float64 `json:"price"`
+	Category    string  `json:"category"`
+	ImageEmoji  string  `json:"imageEmoji"`
+	Stock       int     `json:"stock"`
 }
 
 type CheckoutResponse struct {

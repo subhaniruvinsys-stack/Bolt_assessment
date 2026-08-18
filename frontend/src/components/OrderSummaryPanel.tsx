@@ -1,16 +1,31 @@
-import { CheckCircle2, ShoppingBag, Sparkles, IndianRupee } from 'lucide-react';
+import { CheckCircle2, ShoppingBag, Sparkles, IndianRupee, Trash2, Plus, Minus } from 'lucide-react';
+import type { Product } from '../lib/api';
+
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
 
 interface OrderSummaryPanelProps {
   user: { firstName: string; lastName: string; email: string } | null;
   recognizeLoading: boolean;
+  cart: CartItem[];
+  onUpdateQuantity: (productId: string, delta: number) => void;
   onLogout?: () => void;
 }
 
 export const OrderSummaryPanel: React.FC<OrderSummaryPanelProps> = ({
   user,
   recognizeLoading,
+  cart,
+  onUpdateQuantity,
   onLogout,
 }) => {
+  const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const gst = Math.round(subtotal * 0.18);
+  const total = subtotal + gst;
+  const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
   return (
     <div className="glass-card rounded-2xl p-6 sticky top-8 space-y-6">
       <div className="flex items-center justify-between border-b border-border pb-4">
@@ -19,7 +34,7 @@ export const OrderSummaryPanel: React.FC<OrderSummaryPanelProps> = ({
           <h2 className="text-lg font-bold text-text-primary">Order Summary</h2>
         </div>
         <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-surface-hover text-text-secondary border border-border">
-          2 items
+          {totalItemsCount} {totalItemsCount === 1 ? 'item' : 'items'}
         </span>
       </div>
 
@@ -59,39 +74,55 @@ export const OrderSummaryPanel: React.FC<OrderSummaryPanelProps> = ({
       ) : null}
 
       {/* Product List */}
-      <div className="space-y-4 text-sm">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-surface-hover rounded-lg flex items-center justify-center text-2xl border border-border">
-              👕
-            </div>
-            <div>
-              <p className="font-semibold text-text-primary">Classic Cotton Tee</p>
-              <p className="text-xs text-text-muted">Size: M | Color: Navy</p>
-            </div>
+      <div className="space-y-4 text-sm max-h-72 overflow-y-auto pr-1">
+        {cart.length === 0 ? (
+          <div className="text-center py-6 text-text-muted text-xs">
+            Cart is empty. Select products from the store below.
           </div>
-          <span className="font-mono-num font-bold text-text-primary">₹2,999</span>
-        </div>
+        ) : (
+          cart.map(({ product, quantity }) => (
+            <div key={product.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-surface/50 border border-border/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-surface-hover rounded-lg flex items-center justify-center text-xl border border-border">
+                  {product.imageEmoji || '📦'}
+                </div>
+                <div>
+                  <p className="font-semibold text-text-primary text-xs">{product.name}</p>
+                  <p className="text-[10px] text-text-muted">₹{product.price.toLocaleString()} each</p>
+                </div>
+              </div>
 
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-surface-hover rounded-lg flex items-center justify-center text-2xl border border-border">
-              🧢
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-surface-hover border border-border rounded-lg p-0.5">
+                  <button
+                    onClick={() => onUpdateQuantity(product.id, -1)}
+                    className="w-5 h-5 flex items-center justify-center text-text-muted hover:text-text-primary text-xs"
+                  >
+                    {quantity === 1 ? <Trash2 className="w-3 h-3 text-error" /> : <Minus className="w-3 h-3" />}
+                  </button>
+                  <span className="font-mono-num text-xs font-bold px-1.5">{quantity}</span>
+                  <button
+                    onClick={() => onUpdateQuantity(product.id, 1)}
+                    className="w-5 h-5 flex items-center justify-center text-text-muted hover:text-text-primary text-xs"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </button>
+                </div>
+
+                <span className="font-mono-num font-bold text-xs text-text-primary w-14 text-right">
+                  ₹{(product.price * quantity).toLocaleString()}
+                </span>
+              </div>
             </div>
-            <div>
-              <p className="font-semibold text-text-primary">Minimalist Cap</p>
-              <p className="text-xs text-text-muted">Color: Charcoal</p>
-            </div>
-          </div>
-          <span className="font-mono-num font-bold text-text-primary">₹1,499</span>
-        </div>
+          ))
+        )}
       </div>
 
       {/* Subtotal Calculation */}
       <div className="border-t border-border pt-4 space-y-2.5 text-sm text-text-secondary">
         <div className="flex justify-between">
           <span>Subtotal</span>
-          <span className="font-mono-num font-medium text-text-primary">₹4,498</span>
+          <span className="font-mono-num font-medium text-text-primary">₹{subtotal.toLocaleString()}</span>
         </div>
         <div className="flex justify-between">
           <span>Shipping</span>
@@ -99,12 +130,12 @@ export const OrderSummaryPanel: React.FC<OrderSummaryPanelProps> = ({
         </div>
         <div className="flex justify-between">
           <span>GST (18%)</span>
-          <span className="font-mono-num font-medium text-text-primary">₹809</span>
+          <span className="font-mono-num font-medium text-text-primary">₹{gst.toLocaleString()}</span>
         </div>
         <div className="border-t border-border pt-3 flex justify-between items-center">
           <span className="font-bold text-base text-text-primary">Total</span>
           <span className="font-mono-num font-bold text-xl gradient-text flex items-center gap-0.5">
-            <IndianRupee className="w-4 h-4 text-indigo-400" />5,307
+            <IndianRupee className="w-4 h-4 text-indigo-400" />{total.toLocaleString()}
           </span>
         </div>
       </div>
