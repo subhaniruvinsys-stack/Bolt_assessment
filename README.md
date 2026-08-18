@@ -28,7 +28,13 @@ A full-stack, production-grade implementation of Bolt's OTP-based shopper recogn
 6. **Razorpay Payment Gateway (Test Mode)**:
    - Integrated Razorpay checkout flow with INR (₹) pricing.
    - Test mode — no real charges, instant payment simulation.
-7. **Structured Observability & Rate Limiting**:
+   - **Credentials**: Key ID: `rzp_test_TR8rObMeDervd4` | Key Secret: `gV3uKJwoCHV103hmvUcBDcGv`
+7. **Dynamic Supabase Product Catalog & Cart**:
+   - Products dynamically loaded from PostgreSQL database via `/api/products`.
+   - Dynamic real-time cart subtotal, 18% GST calculation, and total calculation.
+8. **Superadmin Portal (`/admin`)**:
+   - Full CRUD dashboard to add, manage, or delete store items & collections directly in Supabase Postgres.
+9. **Structured Observability & Rate Limiting**:
    - JSON request logger middleware emitting structured request metrics (method, path, status, latency, request ID).
    - In-memory rate limiter protecting verification endpoints against brute-force attacks.
 
