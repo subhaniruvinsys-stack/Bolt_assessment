@@ -2,18 +2,14 @@ FROM golang:1.22-alpine
 
 WORKDIR /app
 
-# Copy go.mod and go.sum supporting both root and api context
-COPY go.mo[d] go.su[m] api/go.mo[d] api/go.su[m] ./
-RUN go mod download
+# Copy all repository source files
+COPY . .
 
-# Copy source code
-COPY . ./
-
-# Build Go executable
-RUN if [ -d "cmd/server" ]; then \
-        CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/bolt-api ./cmd/server ; \
+# Build Go executable (handles both root context and /api context)
+RUN if [ -f "api/go.mod" ]; then \
+        cd api && CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/bolt-api ./cmd/server ; \
     else \
-        CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/bolt-api ./api/cmd/server ; \
+        CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/bolt-api ./cmd/server ; \
     fi
 
 EXPOSE 8080
