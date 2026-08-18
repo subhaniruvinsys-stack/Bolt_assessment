@@ -1,0 +1,141 @@
+openapi: 3.0.3
+info:
+  title: Bolt OTP Login & Checkout API
+  description: REST API for OTP-based user registration, email recognition, verification, and idempotent checkout processing.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api
+    description: Local development server
+paths:
+  /health:
+    get:
+      summary: Liveness health check
+      responses:
+        '200':
+          description: Service is healthy
+  /ready:
+    get:
+      summary: Readiness probe
+      responses:
+        '200':
+          description: Service is ready
+  /register:
+    post:
+      summary: Register a new user and generate a 6-digit OTP code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, firstName, lastName]
+              properties:
+                email:
+                  type: string
+                  format: email
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+      responses:
+        '201':
+          description: User registered successfully
+        '409':
+          description: User already registered
+  /recognize:
+    post:
+      summary: Check if an email belongs to a registered shopper
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Recognition status returned
+  /login:
+    post:
+      summary: Verify 6-digit OTP code and create session cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code]
+              properties:
+                email:
+                  type: string
+                code:
+                  type: string
+                  example: "123456"
+      responses:
+        '200':
+          description: Verification successful, session cookie set
+        '401':
+          description: Invalid, expired, or used code
+        '429':
+          description: Rate limit exceeded (5 attempts per 15 min)
+  /resend-code:
+    post:
+      summary: Regenerate a fresh 6-digit OTP code for a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Fresh OTP code generated
+  /me:
+    get:
+      summary: Return current authenticated session user
+      responses:
+        '200':
+          description: User session details
+        '401':
+          description: Not authenticated
+  /logout:
+    post:
+      summary: Clear session cookie
+      responses:
+        '200':
+          description: Session terminated
+  /checkout:
+    post:
+      summary: Process checkout order with idempotency check
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, phone, shippingAddress]
+              properties:
+                email:
+                  type: string
+                phone:
+                  type: string
+                shippingAddress:
+                  type: object
+      responses:
+        '201':
+          description: Order created
+        '200':
+          description: Idempotent duplicate request returned existing order

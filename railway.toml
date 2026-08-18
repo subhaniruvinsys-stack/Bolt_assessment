@@ -1,0 +1,11 @@
+# Railway config — tells Railway to use the api/ directory
+[build]
+builder = "dockerfile"
+dockerfilePath = "api/Dockerfile"
+buildContext = "api"
+
+[deploy]
+healthcheckPath = "/api/health"
+healthcheckTimeout = 10
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
