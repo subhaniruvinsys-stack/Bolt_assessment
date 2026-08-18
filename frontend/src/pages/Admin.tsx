@@ -199,7 +199,7 @@ export const AdminPage: React.FC<AdminProps> = ({ onNavigateHome, onNavigateChec
           </div>
           <div>
             <h1 className="text-lg font-bold text-text-primary tracking-tight">Superadmin Portal</h1>
-            <p className="text-[10px] text-text-muted -mt-0.5">Manage Products & Supabase Catalog</p>
+            <p className="text-[10px] text-text-muted -mt-0.5">Manage Products & CockroachDB Catalog</p>
           </div>
         </button>
 
@@ -245,7 +245,7 @@ export const AdminPage: React.FC<AdminProps> = ({ onNavigateHome, onNavigateChec
             </div>
             <div>
               <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Database Mode</p>
-              <p className="text-sm font-bold text-emerald-400">PostgreSQL (Supabase)</p>
+              <p className="text-sm font-bold text-emerald-400">PostgreSQL (CockroachDB)</p>
             </div>
           </div>
         </div>
