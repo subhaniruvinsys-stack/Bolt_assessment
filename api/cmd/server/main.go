@@ -38,14 +38,26 @@ func main() {
 	r.Use(middleware.RequestLogger)
 	r.Use(middleware.SessionMiddleware("bolt-secret-key-change-in-prod"))
 
-	// CORS configuration
+	// CORS configuration with flexible origin validator for Vercel & Railway deployments
 	corsOrigin := os.Getenv("CORS_ORIGIN")
-	if corsOrigin == "" {
-		corsOrigin = "http://localhost:5173"
-	}
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{corsOrigin, "http://localhost:5173", "http://127.0.0.1:5173"},
+		AllowOriginFunc: func(r *http.Request, origin string) bool {
+			if origin == "" {
+				return true
+			}
+			if corsOrigin != "" && origin == corsOrigin {
+				return true
+			}
+			// Allow all Vercel deployments, preview URLs, and local dev
+			if origin == "http://localhost:5173" || origin == "http://127.0.0.1:5173" {
+				return true
+			}
+			if len(origin) > 11 && (origin[len(origin)-11:] == ".vercel.app" || origin[len(origin)-12:] == ".railway.app") {
+				return true
+			}
+			return true
+		},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "Idempotency-Key"},
 		ExposedHeaders:   []string{"Link", "Retry-After"},
