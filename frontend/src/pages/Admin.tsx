@@ -9,6 +9,13 @@ interface AdminProps {
 }
 
 export const AdminPage: React.FC<AdminProps> = ({ onNavigateHome, onNavigateCheckout }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return sessionStorage.getItem('bolt_admin_auth') === 'true';
+  });
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -21,7 +28,24 @@ export const AdminPage: React.FC<AdminProps> = ({ onNavigateHome, onNavigateChec
   const [imageEmoji, setImageEmoji] = useState('📦');
   const [stock, setStock] = useState('50');
 
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = adminEmail.trim().toLowerCase();
+    const cleanPassword = adminPassword.trim();
+
+    if ((cleanEmail === 'admin@bolt.com' || cleanEmail === 'admin') && cleanPassword === 'admin123') {
+      setIsAuthenticated(true);
+      sessionStorage.setItem('bolt_admin_auth', 'true');
+      setAuthError(null);
+      toast.success('Superadmin Access Granted', { description: 'Welcome to Bolt Product Management' });
+    } else {
+      setAuthError('Invalid credentials. Use email: admin@bolt.com & password: admin123');
+      toast.error('Access Denied', { description: 'Incorrect admin email or password' });
+    }
+  };
+
   const fetchProducts = async () => {
+    if (!isAuthenticated) return;
     setLoading(true);
     try {
       const res = await api.getProducts();
@@ -34,8 +58,10 @@ export const AdminPage: React.FC<AdminProps> = ({ onNavigateHome, onNavigateChec
   };
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    if (isAuthenticated) {
+      fetchProducts();
+    }
+  }, [isAuthenticated]);
 
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +104,84 @@ export const AdminPage: React.FC<AdminProps> = ({ onNavigateHome, onNavigateChec
       toast.error('Delete failed', { description: err.message });
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
+        <div className="fixed inset-0 pointer-events-none">
+          <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-purple-600/10 blur-3xl animate-float" />
+        </div>
+
+        <div className="relative z-10 w-full max-w-md glass-card rounded-2xl p-8 space-y-6 animate-slide-up">
+          <div className="text-center space-y-2">
+            <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center mx-auto">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <h1 className="text-2xl font-bold text-text-primary">Superadmin Access</h1>
+            <p className="text-sm text-text-secondary">
+              Enter credentials to manage Supabase PostgreSQL product catalog.
+            </p>
+          </div>
+
+          <div className="p-3 bg-purple-500/10 rounded-xl border border-purple-500/20 text-xs text-purple-300 font-mono-num text-center">
+            🔑 Demo Login: <span className="font-bold text-white">admin@bolt.com</span> | Password: <span className="font-bold text-white">admin123</span>
+          </div>
+
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">
+                Admin Email
+              </label>
+              <input
+                type="email"
+                required
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                placeholder="admin@bolt.com"
+                className="w-full px-4 py-3 rounded-xl input-dark text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">
+                Password / Secret Key
+              </label>
+              <input
+                type="password"
+                required
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-3 rounded-xl input-dark text-sm"
+              />
+            </div>
+
+            {authError && (
+              <p className="text-xs text-error font-medium text-center bg-error/10 py-2 rounded-lg border border-error/20">
+                {authError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              className="w-full py-3.5 btn-gradient text-white font-bold text-sm rounded-xl"
+            >
+              Authenticate & Unlock Admin Portal
+            </button>
+          </form>
+
+          <div className="text-center pt-2 border-t border-border">
+            <button
+              onClick={onNavigateHome}
+              className="text-xs text-text-muted hover:text-text-primary transition-colors flex items-center justify-center gap-1 mx-auto"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Return to Storefront
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden">
