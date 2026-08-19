@@ -1,10 +1,13 @@
 # Bolt Assessment — OTP Shopper Recognition & Checkout
 
-A full-stack, production-grade implementation of Bolt's OTP-based shopper recognition and idempotent checkout flow. Built with **Go** (`chi` + `pgx`), **PostgreSQL** (Supabase), **React** (TypeScript + Vite + Tailwind CSS v4), and **Razorpay** (test mode payment gateway).
+A full-stack, production-grade implementation of Bolt's OTP-based shopper recognition and idempotent checkout flow. Built with **Go** (`chi` + `pgx`), **CockroachDB Cloud** (PostgreSQL Serverless), **React** (TypeScript + Vite + Tailwind CSS v4), and **Razorpay** (test mode payment gateway).
 
-![CI Pipeline](https://github.com/boltapp-hiring/bolt-otp-checkout/actions/workflows/ci.yml/badge.svg)
+[![CI Pipeline](https://github.com/subhaniruvinsys-stack/Bolt_assessment/actions/workflows/ci.yml/badge.svg)](https://github.com/subhaniruvinsys-stack/Bolt_assessment/actions/workflows/ci.yml)
 
-> **Live Demo**: [Frontend](https://your-app.vercel.app) · [API Health](https://your-api.up.railway.app/api/health)
+### 🌐 Live Deployment Links
+- ⚡ **Live Frontend App**: [https://bolt-assessment.vercel.app/](https://bolt-assessment.vercel.app/)
+- 🔌 **Live Backend API**: [https://boltassessment-production.up.railway.app/api/health](https://boltassessment-production.up.railway.app/api/health)
+- 🐙 **GitHub Repository**: [https://github.com/subhaniruvinsys-stack/Bolt_assessment](https://github.com/subhaniruvinsys-stack/Bolt_assessment)
 
 ---
 
