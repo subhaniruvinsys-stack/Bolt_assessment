@@ -108,7 +108,7 @@ Built with Google Gemini as the primary AI pair-programming assistant.
     component state so retries reuse it), show a success toast, and reset
     the form."
 
-## Review pass
+## Review Pass
 
 23. "Review the Go handlers for missing input validation, SQL injection
     risk, and missing CORS config for the Vercel origin with credentials
@@ -129,3 +129,18 @@ Built with Google Gemini as the primary AI pair-programming assistant.
 
 27. "Configure Dockerfile for Railway backend deployment and set up SameSite=None
     and Secure=true cookies for cross-origin authentication between Vercel and Railway."
+
+## Database & Production Deployment (CockroachDB Cloud & Railway)
+
+28. "Migrate database setup from Supabase to CockroachDB Cloud Serverless (ap-south-1 Mumbai),
+    verify pgx connection pool compatibility, and write migration runner for 0001_init.sql,
+    0002_orders.sql, 0003_products.sql, and 0001_seed.sql."
+
+29. "Build Superadmin Portal (/admin) with fixed credentials protection (admin@bolt.com / admin123),
+    providing full CRUD capabilities for catalog items and store collections stored dynamically in PostgreSQL."
+
+30. "Update Go CORS middleware with AllowOriginFunc to dynamically validate and accept any *.vercel.app
+    frontend deployment domain and Railway backend previews."
+
+31. "Update root and api Dockerfiles with working-directory checks (cd api) to support both root
+    and subdirectory build contexts on Railway."
